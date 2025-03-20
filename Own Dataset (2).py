@@ -126,7 +126,7 @@ if "expanded_features" not in st.session_state:
 if "df" not in st.session_state:
     st.session_state.df = None
 
-st.title("📊 AI-Powered Dependency Analyzer (Dataset Mode)")
+st.title(" AI-Powered Dependency Analyzer (Dataset Mode)")
 
 # 🔹 Step 1: Upload Dataset
 uploaded_file = st.file_uploader("📂 Upload your dataset (CSV format)", type=["csv"])
