@@ -86,7 +86,7 @@ def get_ai_dependencies(feature, dataset_features):
         response = genai.GenerativeModel("gemini-2.0-flash").generate_content(prompt)
         raw_output = response.text if response.text else "EMPTY RESPONSE"
 
-        print(f"🔍 AI Response for '{feature}':\n{raw_output}")  # Debugging Output
+        print(f" AI Response for '{feature}':\n{raw_output}")  # Debugging Output
 
         if raw_output == "EMPTY RESPONSE":
             return {"Primary": [], "Explanations": {}}
@@ -111,7 +111,7 @@ def get_ai_dependencies(feature, dataset_features):
         return {"Primary": new_primary_dependencies[:20], "Explanations": explanations}
 
     except Exception as e:
-        print(f"⚠️ AI Error: {e}")
+        print(f" AI Error: {e}")
         return {"Primary": [], "Explanations": {}}
 
 # ✅ Initialize session state
@@ -130,21 +130,21 @@ if "expanded_features" not in st.session_state:
 if "df" not in st.session_state:
     st.session_state.df = None
 
-st.title("📊 AI-Powered Dependency Analyzer (Dataset Mode)")
+st.title(" AI-Powered Dependency Analyzer (Dataset Mode)")
 
 # 🔹 Step 1: Upload Dataset
-uploaded_file = st.file_uploader("📂 Upload your dataset (CSV format)", type=["csv"])
+uploaded_file = st.file_uploader(" Upload your dataset (CSV format)", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     st.session_state.df = df
     st.session_state.dataset_features = df.columns.tolist()
-    st.write("✅ Dataset loaded successfully!")
+    st.write(" Dataset loaded successfully!")
 
     # 🔹 Step 2: User selects target feature
-    target_feature = st.selectbox("🎯 Select the Target Feature:", df.columns.tolist())
+    target_feature = st.selectbox(" Select the Target Feature:", df.columns.tolist())
 
-    if st.button("🔍 Analyze Dataset-Based Dependencies"):
+    if st.button(" Analyze Dataset-Based Dependencies"):
         dependencies, level_mapping = extract_hierarchical_dependencies(df, target_feature)
         st.session_state.dependencies = dependencies
         st.session_state.level_mapping = level_mapping
@@ -247,18 +247,18 @@ def render_graph():
     try:
         os.remove(temp_filename)
     except PermissionError:
-        print(f"⚠️ Warning: Could not delete temp file {temp_filename}. It may still be in use.")
+        print(f" Warning: Could not delete temp file {temp_filename}. It may still be in use.")
 
 # Only render graph and enable AI features if graph is ready
 if st.session_state.graph_ready:
-    st.write("## 📊 Dependency Graph")
+    st.write("##  Dependency Graph")
     render_graph()
     # Debugging: Check if dependencies are populated
     st.write("Available Features for Expansion:", list(st.session_state.dependencies.keys()))
 
     # After selecting the feature to expand
 # After selecting the feature to expand
-selected_feature = st.selectbox("📌 Select a feature to expand:", list(st.session_state.dependencies.keys()))
+selected_feature = st.selectbox(" Select a feature to expand:", list(st.session_state.dependencies.keys()))
 st.write("Selected Feature:", selected_feature)
 
 # Proceed with AI suggestion if a feature is selected
@@ -281,7 +281,7 @@ if selected_feature:
             st.markdown(f"**{dep}:** {explanation}")
 
         # Allow users to select dependencies
-        selected_suggestions = st.multiselect("✅ Select AI-suggested dependencies:", suggested_deps)
+        selected_suggestions = st.multiselect(" Select AI-suggested dependencies:", suggested_deps)
 
         if st.button(f"➕ Confirm Dependencies for {selected_feature}"):
             if selected_suggestions:
@@ -291,7 +291,7 @@ if selected_feature:
                 st.session_state.expanded_features.update(selected_suggestions)
                 # Also update the available features for expansion
                 st.session_state.graph_ready = True
-                st.success(f"✅ Dependencies for '{selected_feature}' added!")
+                st.success(f" Dependencies for '{selected_feature}' added!")
 
                 # Add the newly confirmed dependencies to the list for recursive expansion
                 st.session_state.dependencies[selected_feature].extend(selected_suggestions)
