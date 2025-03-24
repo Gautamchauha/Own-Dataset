@@ -11,7 +11,11 @@ import random
 
 
 # ✅ Configure Gemini API
-genai.configure(api_key="AIzaSyDp6sMaVDOCva53AA_yzdGZ9vb2fSDAq-8")
+from dotenv import load_dotenv
+
+# Configure Google AI API
+load_dotenv()  # Load environment variables from .env file
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # 🔹 Function to extract hierarchical dependencies from the dataset
 def extract_hierarchical_dependencies(df, target_feature, max_depth=3, threshold=0.2):
@@ -82,7 +86,7 @@ def get_ai_dependencies(feature, dataset_features):
         response = genai.GenerativeModel("gemini-2.0-flash").generate_content(prompt)
         raw_output = response.text if response.text else "EMPTY RESPONSE"
 
-        print(f" AI Response for '{feature}':\n{raw_output}")  # Debugging Output
+        print(f"🔍 AI Response for '{feature}':\n{raw_output}")  # Debugging Output
 
         if raw_output == "EMPTY RESPONSE":
             return {"Primary": [], "Explanations": {}}
@@ -107,7 +111,7 @@ def get_ai_dependencies(feature, dataset_features):
         return {"Primary": new_primary_dependencies[:20], "Explanations": explanations}
 
     except Exception as e:
-        print(f"⚠ AI Error: {e}")
+        print(f"⚠️ AI Error: {e}")
         return {"Primary": [], "Explanations": {}}
 
 # ✅ Initialize session state
@@ -126,10 +130,10 @@ if "expanded_features" not in st.session_state:
 if "df" not in st.session_state:
     st.session_state.df = None
 
-st.title(" AI-Powered Dependency Analyzer (Dataset Mode)")
+st.title("📊 AI-Powered Dependency Analyzer (Dataset Mode)")
 
 # 🔹 Step 1: Upload Dataset
-uploaded_file = st.file_uploader(" Upload your dataset (CSV format)", type=["csv"])
+uploaded_file = st.file_uploader("📂 Upload your dataset (CSV format)", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -138,15 +142,63 @@ if uploaded_file:
     st.write("✅ Dataset loaded successfully!")
 
     # 🔹 Step 2: User selects target feature
-    target_feature = st.selectbox(" Select the Target Feature:", df.columns.tolist())
+    target_feature = st.selectbox("🎯 Select the Target Feature:", df.columns.tolist())
 
-    if st.button(" Analyze Dataset-Based Dependencies"):
+    if st.button("🔍 Analyze Dataset-Based Dependencies"):
         dependencies, level_mapping = extract_hierarchical_dependencies(df, target_feature)
         st.session_state.dependencies = dependencies
         st.session_state.level_mapping = level_mapping
         st.session_state.graph_ready = True
         st.session_state.expanded_features.add(target_feature)
-        st.success(" Dependency graph generated!")
+        st.success("📊 Dependency graph generated!")
+
+# 🔹 Function to render dependency graph
+def set_graph_options(net):
+    options = """
+    {
+      "layout": {
+        "hierarchical": {
+          "enabled": true,
+          "direction": "LR",
+          "sortMethod": "directed",
+          "levelSeparation": 300,
+          "nodeSpacing": 200,
+          "treeSpacing": 300,
+          "blockShifting": false,
+          "edgeMinimization": true,
+          "parentCentralization": true
+        }
+      },
+      "physics": {
+        "enabled": false
+      },
+      "interaction": {
+        "hover": true,
+        "dragNodes": true,
+        "dragView": true,
+        "zoomView": true
+      },
+      "edges": {
+        "color": {
+          "color": "darkblue"
+        },
+        "width": 2.5,
+        "smooth": {
+          "type": "cubicBezier",
+          "forceDirection": "horizontal"
+        }
+      },
+      "nodes": {
+        "font": {
+          "size": 14,
+          "face": "Arial"
+        },
+        "shape": "box",  
+        "margin": 15
+      }
+    }
+    """
+    net.set_options(options)
 
 # 🔹 Function to render dependency graph
 def render_graph():
@@ -161,9 +213,19 @@ def render_graph():
 
     net = Network(height="600px", width="100%", directed=True)
 
+    # Set graph options
+    set_graph_options(net)
+
     for node in G.nodes:
-        color = "#3385FF" if node in st.session_state.dataset_features else "#33FF57"
-        net.add_node(node, label=node, color=color, size=20)
+        # Color coding based on node type
+        if node in st.session_state.expanded_features:
+            color = "lightgreen"  # Target feature
+        elif node in st.session_state.dataset_features:
+            color = "lightblue"  # Other dataset features
+        else:
+            color = "lightgreen"  # AI-generated features
+
+        net.add_node(node, label=node, color=color, size=30, shape="box")  # Ensure nodes are boxes
 
     for edge in G.edges:
         net.add_edge(edge[0], edge[1], color="gray", width=2)
@@ -178,24 +240,25 @@ def render_graph():
         html_content = f.read()
         st.components.v1.html(html_content, height=600, scrolling=True)
 
+    with open(temp_filename, "r") as f:
+        st.download_button("Download Graph as HTML", data=f, file_name="dependency_graph.html", mime="text/html")
+
     # ✅ Delete file safely after rendering
     try:
         os.remove(temp_filename)
     except PermissionError:
         print(f"⚠️ Warning: Could not delete temp file {temp_filename}. It may still be in use.")
 
-
 # Only render graph and enable AI features if graph is ready
 if st.session_state.graph_ready:
-    st.write("##  Dependency Graph")
+    st.write("## 📊 Dependency Graph")
     render_graph()
-
     # Debugging: Check if dependencies are populated
     st.write("Available Features for Expansion:", list(st.session_state.dependencies.keys()))
 
     # After selecting the feature to expand
 # After selecting the feature to expand
-selected_feature = st.selectbox(" Select a feature to expand:", list(st.session_state.dependencies.keys()))
+selected_feature = st.selectbox("📌 Select a feature to expand:", list(st.session_state.dependencies.keys()))
 st.write("Selected Feature:", selected_feature)
 
 # Proceed with AI suggestion if a feature is selected
@@ -220,7 +283,7 @@ if selected_feature:
         # Allow users to select dependencies
         selected_suggestions = st.multiselect("✅ Select AI-suggested dependencies:", suggested_deps)
 
-        if st.button(f" Confirm Dependencies for {selected_feature}"):
+        if st.button(f"➕ Confirm Dependencies for {selected_feature}"):
             if selected_suggestions:
                 # Adding selected suggestions to the existing dependencies
                 st.session_state.dependencies[selected_feature].extend(selected_suggestions)
