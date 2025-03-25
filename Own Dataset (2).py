@@ -8,6 +8,56 @@ import tempfile
 import os
 import numpy as np
 import random
+import json
+
+# Initialize session state for history
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# Function to save analysis state
+def save_history():
+    current_analysis = {
+        "dependencies": st.session_state.dependencies,
+        "level_mapping": st.session_state.level_mapping,
+        "dataset_features": st.session_state.dataset_features,
+        "ai_dependencies": st.session_state.ai_dependencies,
+        "expanded_features": list(st.session_state.expanded_features),
+    }
+    st.session_state.history.append(current_analysis)
+    st.success("Analysis saved to history!")
+
+# Function to load a past analysis
+def load_history(index):
+    past_analysis = st.session_state.history[index]
+    st.session_state.dependencies = past_analysis["dependencies"]
+    st.session_state.level_mapping = past_analysis["level_mapping"]
+    st.session_state.dataset_features = past_analysis["dataset_features"]
+    st.session_state.ai_dependencies = past_analysis["ai_dependencies"]
+    st.session_state.expanded_features = set(past_analysis["expanded_features"])
+    st.session_state.graph_ready = True
+    st.success("History loaded successfully!")
+    st.rerun()
+
+# Function to export history as a JSON file
+def export_history():
+    history_json = json.dumps(st.session_state.history, indent=4)
+    st.download_button("Download History", data=history_json, file_name="analysis_history.json", mime="application/json")
+
+
+# Sidebar for history management
+with st.sidebar:
+    st.header("📜 Analysis History")
+    if st.button("💾 Save Analysis"):
+        save_history()
+    
+    if st.session_state.history:
+        selected_index = st.selectbox("📂 Load Previous Analysis", range(len(st.session_state.history)))
+        if st.button("🔄 Load Selected History"):
+            load_history(selected_index)
+        export_history()
+        
+    else:
+        st.write("No history available.")
 
 
 # ✅ Configure Gemini API
