@@ -10,48 +10,60 @@ import numpy as np
 import random
 import json
 
-# ✅ Initialize history session state
+
+
+
+    
+import json
+
+# Initialize session state for history
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# 🔹 Function to save the current analysis to history
-def save_to_history():
-    history_entry = {
-        "dataset_features": st.session_state.dataset_features.copy(),
-        "dependencies": st.session_state.dependencies.copy(),
-        "ai_dependencies": st.session_state.ai_dependencies.copy(),
-        "expanded_features": st.session_state.expanded_features.copy(),
+# Function to save analysis state
+def save_history():
+    current_analysis = {
+        "dependencies": st.session_state.dependencies,
+        "level_mapping": st.session_state.level_mapping,
+        "dataset_features": st.session_state.dataset_features,
+        "ai_dependencies": st.session_state.ai_dependencies,
+        "expanded_features": list(st.session_state.expanded_features),
     }
-    st.session_state.history.append(history_entry)
-    st.success("✅ Analysis saved to history!")
+    st.session_state.history.append(current_analysis)
+    st.success("Analysis saved to history!")
 
-# 🔹 Function to view and reload history
-def view_history():
-    st.sidebar.subheader("📜 Analysis History")
+# Function to load a past analysis
+def load_history(index):
+    past_analysis = st.session_state.history[index]
+    st.session_state.dependencies = past_analysis["dependencies"]
+    st.session_state.level_mapping = past_analysis["level_mapping"]
+    st.session_state.dataset_features = past_analysis["dataset_features"]
+    st.session_state.ai_dependencies = past_analysis["ai_dependencies"]
+    st.session_state.expanded_features = set(past_analysis["expanded_features"])
+    st.session_state.graph_ready = True
+    st.success("History loaded successfully!")
+    st.rerun()
+
+# Function to export history as a JSON file
+def export_history():
+    history_json = json.dumps(st.session_state.history, indent=4)
+    st.download_button("Download History", data=history_json, file_name="analysis_history.json", mime="application/json")
+
+
+# Sidebar for history management
+with st.sidebar:
+    st.header("📜 Analysis History")
+    if st.button("💾 Save Analysis"):
+        save_history()
     
-    if not st.session_state.history:
-        st.sidebar.write("No history available.")
+    if st.session_state.history:
+        selected_index = st.selectbox("📂 Load Previous Analysis", range(len(st.session_state.history)))
+        if st.button("🔄 Load Selected History"):
+            load_history(selected_index)
+        export_history()
+        
     else:
-        selected_index = st.sidebar.selectbox(
-            "Select a past analysis:",
-            range(len(st.session_state.history)),
-            format_func=lambda x: f"Analysis {x+1}"
-        )
-
-        if st.sidebar.button("🔄 Load Analysis"):
-            selected_analysis = st.session_state.history[selected_index]
-            st.session_state.dataset_features = selected_analysis["dataset_features"]
-            st.session_state.dependencies = selected_analysis["dependencies"]
-            st.session_state.ai_dependencies = selected_analysis["ai_dependencies"]
-            st.session_state.expanded_features = selected_analysis["expanded_features"]
-            st.session_state.graph_ready = True
-            st.success("✅ Analysis reloaded successfully!")
-            st.rerun()
-
-# 🔹 Add a button to save current state in history
-st.sidebar.button("💾 Save Analysis", on_click=save_to_history)
-st.sidebar.button("📜 View History", on_click=view_history)
-
+        st.write("No history available.")
  
     
 
