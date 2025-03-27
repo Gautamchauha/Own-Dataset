@@ -8,109 +8,7 @@ import tempfile
 import os
 import numpy as np
 import random
-import json
-from datetime import datetime
 
-# Define history directory
-HISTORY_DIR = "history"
-os.makedirs(HISTORY_DIR, exist_ok=True)  # Ensure the directory exists
-
-# Function to save history to a file
-def save_history_to_file():
-    timestamp = st.session_state.get("timestamp", "latest")
-    filename = f"{HISTORY_DIR}/analysis_{timestamp}.json"
-
-    with open(filename, "w") as f:
-        json.dump(st.session_state.history, f, indent=4)
-
-    st.session_state["last_saved_file"] = filename  # Store last saved file in session
-    st.success(f"History saved as {filename}")
-def save_history_to_file():
-    """Save history to a uniquely named JSON file."""
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"{HISTORY_DIR}/analysis_{timestamp}.json"
-
-    with open(filename, "w") as f:
-        json.dump(st.session_state.history, f, indent=4)
-
-    st.success(f"History saved as {filename}")
-# Function to get all saved JSON files
-def get_history_files():
-    """Get all JSON files from the history folder."""
-    return sorted(
-        [f for f in os.listdir(HISTORY_DIR) if f.endswith(".json")],
-        reverse=True
-    )
-
-def load_history_from_file(filename):
-    """Load history from a selected JSON file and trigger analysis."""
-    filepath = os.path.join(HISTORY_DIR, filename)
-    try:
-        with open(filepath, "r") as f:
-            history_data = json.load(f)
-
-        # Set session state with loaded data
-        st.session_state.history = history_data
-
-        if history_data:
-            # Load the last saved analysis and trigger re-analysis
-            latest_analysis = history_data[-1]
-            st.session_state.dependencies = latest_analysis["dependencies"]
-            st.session_state.level_mapping = latest_analysis["level_mapping"]
-            st.session_state.dataset_features = latest_analysis["dataset_features"]
-            st.session_state.ai_dependencies = latest_analysis["ai_dependencies"]
-            st.session_state.expanded_features = set(latest_analysis["expanded_features"])
-            st.session_state.graph_ready = True  # Indicate the graph should update
-
-            st.success(f"History loaded and analysis triggered from {filename}")
-            st.rerun()  # Refresh Streamlit to reflect changes
-        else:
-            st.warning(f"File {filename} is empty.")
-
-    except FileNotFoundError:
-        st.warning(f"File not found: {filename}")
-
-# Initialize session state for history
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-# Function to save analysis state
-def save_history():
-    """Save the current analysis state in session history."""
-    current_analysis = {
-        "dependencies": st.session_state.get("dependencies", {}),
-        "level_mapping": st.session_state.get("level_mapping", {}),
-        "dataset_features": st.session_state.get("dataset_features", []),
-        "ai_dependencies": st.session_state.get("ai_dependencies", {}),
-        "expanded_features": list(st.session_state.get("expanded_features", set())),
-    }
-    st.session_state.history.append(current_analysis)
-    st.success("Analysis saved to history!")
-
-# Function to export history as a JSON file
-def export_history():
-    """Allow users to download the saved history as a JSON file."""
-    history_json = json.dumps(st.session_state.history, indent=4)
-    st.download_button("Download History", data=history_json, file_name="analysis_history.json", mime="application/json")
-
-# Sidebar for history management
-with st.sidebar:
-    st.header("📜 Analysis History")
-
-    if st.button("💾 Save Analysis to File"):
-        save_history()
-        save_history_to_file()
-
-    # Show available history files
-    history_files = get_history_files()
-    if history_files:
-        selected_file = st.selectbox("📂 Select a File to Load", history_files)
-        if st.button("📂 Load Selected File & Analyze"):
-            load_history_from_file(selected_file)
-    else:
-        st.write("No saved history files found.")
- 
-    
 
 # ✅ Configure Gemini API
 from dotenv import load_dotenv
@@ -138,7 +36,7 @@ def extract_hierarchical_dependencies(df, target_feature, max_depth=3, threshold
 
     # 🔹 Find Primary dependencies based on correlation threshold
     corr_values = correlations[target_feature].abs()
-    threshold = max(corr_values.median(), 0.2)  # Dynamic threshold
+    threshold = max(corr_values.median(), threshold)  # Dynamic threshold
     corr_values = corr_values[corr_values > threshold]
 
     dependencies = {target_feature: []}
@@ -161,7 +59,6 @@ def extract_hierarchical_dependencies(df, target_feature, max_depth=3, threshold
 
     find_dependencies(target_feature, 1)
     return dependencies, level_mapping
-
 # 🔹 Function to fetch AI-based dependencies
 def normalize_text(text):
     return re.sub(r"\*\s{2,}", "* ", text)
@@ -188,7 +85,7 @@ def get_ai_dependencies(feature, dataset_features):
         response = genai.GenerativeModel("gemini-2.0-flash").generate_content(prompt)
         raw_output = response.text if response.text else "EMPTY RESPONSE"
 
-        print(f" AI Response for '{feature}':\n{raw_output}")  # Debugging Output
+        print(f"🔍 AI Response for '{feature}':\n{raw_output}")  # Debugging Output
 
         if raw_output == "EMPTY RESPONSE":
             return {"Primary": [], "Explanations": {}}
@@ -213,7 +110,7 @@ def get_ai_dependencies(feature, dataset_features):
         return {"Primary": new_primary_dependencies[:20], "Explanations": explanations}
 
     except Exception as e:
-        print(f" AI Error: {e}")
+        print(f"⚠️ AI Error: {e}")
         return {"Primary": [], "Explanations": {}}
 
 # ✅ Initialize session state
@@ -232,23 +129,21 @@ if "expanded_features" not in st.session_state:
 if "df" not in st.session_state:
     st.session_state.df = None
 
-st.title(" AI-Powered Dependency Analyzer (Dataset Mode)")
+st.title("📊 AI-Powered Dependency Analyzer (Dataset Mode)")
 
 # 🔹 Step 1: Upload Dataset
-uploaded_file = st.file_uploader(" Upload your dataset (CSV format)", type=["csv"])
+uploaded_file = st.file_uploader("📂 Upload your dataset (CSV format)", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     st.session_state.df = df
-  
-
     st.session_state.dataset_features = df.columns.tolist()
-    st.write(" Dataset loaded successfully!")
+    st.write("✅ Dataset loaded successfully!")
 
     # 🔹 Step 2: User selects target feature
-    target_feature = st.selectbox(" Select the Target Feature:", df.columns.tolist())
+    target_feature = st.selectbox("🎯 Select the Target Feature:", df.columns.tolist())
 
-    if st.button(" Analyze Dataset-Based Dependencies"):
+    if st.button("🔍 Analyze Dataset-Based Dependencies"):
         dependencies, level_mapping = extract_hierarchical_dependencies(df, target_feature)
         st.session_state.dependencies = dependencies
         st.session_state.level_mapping = level_mapping
@@ -257,13 +152,15 @@ if uploaded_file:
         st.success("📊 Dependency graph generated!")
 
 # 🔹 Function to render dependency graph
+
+# 🔹 Function to set graph options
 def set_graph_options(net):
     options = """
     {
       "layout": {
         "hierarchical": {
           "enabled": true,
-          "direction": "LR",
+          "direction": "LR",  
           "sortMethod": "directed",
           "levelSeparation": 300,
           "nodeSpacing": 200,
@@ -294,42 +191,47 @@ def set_graph_options(net):
       },
       "nodes": {
         "font": {
-          "size": 14,
+          "size": 20,  
           "face": "Arial"
         },
-        "shape": "box",  
+        "shape": "box",
         "margin": 15
       }
     }
     """
     net.set_options(options)
 
+# 🔹 Function to get color by level
+def get_color_by_level(level):
+    color_map = {
+        0: "lightgreen",  # Target feature
+        1: "lightblue",   # Level 1 dependencies
+        2: "lightyellow",  # Level 2 dependencies
+        3: "lightcoral",   # Level 3 dependencies
+        4: "lightgray",    # Level 4 dependencies (if needed)
+    }
+    return color_map.get(level, "lightgray")
+
 # 🔹 Function to render dependency graph
 def render_graph():
-    G = nx.DiGraph()
+    G = nx.DiGraph()  # Use a directed graph for unidirectional edges
 
     for node, level in st.session_state.level_mapping.items():
         G.add_node(node, level=level)
 
     for parent, children in st.session_state.dependencies.items():
         for child in children:
-            G.add_edge(parent, child, weight=1)
+            G.add_edge(parent, child)  # Ensure directed edges
 
-    net = Network(height="600px", width="100%", directed=True)
+    net = Network(height="600px", width="100%", directed=True)  # Set directed to True
 
     # Set graph options
     set_graph_options(net)
 
     for node in G.nodes:
-        # Color coding based on node type
-        if node in st.session_state.expanded_features:
-            color = "lightgreen"  # Target feature
-        elif node in st.session_state.dataset_features:
-            color = "lightblue"  # Other dataset features
-        else:
-            color = "lightgreen"  # AI-generated features
-
-        net.add_node(node, label=node, color=color, size=30, shape="box")  # Ensure nodes are boxes
+        level = G.nodes[node]['level']
+        color = get_color_by_level(level)  # Get color based on level
+        net.add_node(node, label=node, color=color, size=30, shape="box", title=node)  # Ensure nodes are boxes and set title for hover text
 
     for edge in G.edges:
         net.add_edge(edge[0], edge[1], color="gray", width=2)
@@ -351,18 +253,18 @@ def render_graph():
     try:
         os.remove(temp_filename)
     except PermissionError:
-        print(f" Warning: Could not delete temp file {temp_filename}. It may still be in use.")
+        print(f"⚠️ Warning: Could not delete temp file {temp_filename}. It may still be in use.")
 
-# Only render graph and enable AI features if graph is ready
+# Call render_graph() when the graph is ready
 if st.session_state.graph_ready:
-    st.write("##  Dependency Graph")
+    st.write("## 📊 Dependency Graph")
     render_graph()
     # Debugging: Check if dependencies are populated
     st.write("Available Features for Expansion:", list(st.session_state.dependencies.keys()))
 
     # After selecting the feature to expand
 # After selecting the feature to expand
-selected_feature = st.selectbox(" Select a feature to expand:", list(st.session_state.dependencies.keys()))
+selected_feature = st.selectbox("📌 Select a feature to expand:", list(st.session_state.dependencies.keys()))
 st.write("Selected Feature:", selected_feature)
 
 # Proceed with AI suggestion if a feature is selected
@@ -385,7 +287,7 @@ if selected_feature:
             st.markdown(f"**{dep}:** {explanation}")
 
         # Allow users to select dependencies
-        selected_suggestions = st.multiselect(" Select AI-suggested dependencies:", suggested_deps)
+        selected_suggestions = st.multiselect("✅ Select AI-suggested dependencies:", suggested_deps)
 
         if st.button(f"➕ Confirm Dependencies for {selected_feature}"):
             if selected_suggestions:
@@ -395,7 +297,7 @@ if selected_feature:
                 st.session_state.expanded_features.update(selected_suggestions)
                 # Also update the available features for expansion
                 st.session_state.graph_ready = True
-                st.success(f" Dependencies for '{selected_feature}' added!")
+                st.success(f"✅ Dependencies for '{selected_feature}' added!")
 
                 # Add the newly confirmed dependencies to the list for recursive expansion
                 st.session_state.dependencies[selected_feature].extend(selected_suggestions)
@@ -412,12 +314,7 @@ def generate_expanded_dataset():
     # Get the current dataset and the expanded features
     df = st.session_state.df
     expanded_features = list(st.session_state.expanded_features)
-    if "df" not in st.session_state or st.session_state.df is None:
-        st.warning("Please upload a dataset first.")
-        st.stop()
-
-  
-
+    
     # Get the current columns in the dataset
     existing_columns = set(df.columns.tolist())
     
