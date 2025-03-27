@@ -309,17 +309,7 @@ if selected_feature:
                 st.rerun()
     else:
         st.write("No AI-suggested dependencies available.")
-# Footer with Copyright Information
-st.markdown(
-    """
-    <hr style="border:1px solid gray;margin-top:20px;margin-bottom:10px;">
-    <div style="text-align:center;">
-        <p>© 2025 All rights reserved.</p>
-        <p>Developed by Himistu Lab.</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+
 def generate_expanded_dataset():
     # Get the current dataset and the expanded features
     df = st.session_state.df
@@ -353,6 +343,17 @@ def generate_expanded_dataset():
             expanded_csv_path = tmp_file.name
             df.to_csv(expanded_csv_path, index=False)
             st.download_button("Download CSV", data=open(expanded_csv_path, "rb"), file_name="expanded_dataset.csv")
+            # Footer with Copyright Information
+st.markdown(
+    """
+    <hr style="border:1px solid gray;margin-top:20px;margin-bottom:10px;">
+    <div style="text-align:center;">
+        <p>© 2025 All rights reserved.</p>
+        <p>Developed by Himistu Lab.</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Call the function to generate the expanded dataset and allow downloading
 generate_expanded_dataset()
