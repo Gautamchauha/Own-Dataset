@@ -241,9 +241,7 @@ uploaded_file = st.file_uploader(" Upload your dataset (CSV format)", type=["csv
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     st.session_state.df = df
-    if "df" not in st.session_state or st.session_state.df is None:
-        st.warning("Please upload a dataset first.")
-        st.stop()
+  
 
     st.session_state.dataset_features = df.columns.tolist()
     st.write(" Dataset loaded successfully!")
@@ -415,6 +413,9 @@ def generate_expanded_dataset():
     # Get the current dataset and the expanded features
     df = st.session_state.df
     expanded_features = list(st.session_state.expanded_features)
+    if "df" not in st.session_state or st.session_state.df is None:
+        st.warning("Please upload a dataset first.")
+        st.stop()
 
   
 
