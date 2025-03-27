@@ -9,12 +9,67 @@ import os
 import numpy as np
 import random
 import json
+import os
+from datetime import datetime
 
+# Define history directory
+HISTORY_DIR = "history"
+os.makedirs(HISTORY_DIR, exist_ok=True)  # Ensure the directory exists
 
+# Function to save history to a file
+def save_history_to_file():
+    timestamp = st.session_state.get("timestamp", "latest")
+    filename = f"{HISTORY_DIR}/analysis_{timestamp}.json"
 
+    with open(filename, "w") as f:
+        json.dump(st.session_state.history, f, indent=4)
 
-    
-import json
+    st.session_state["last_saved_file"] = filename  # Store last saved file in session
+    st.success(f"History saved as {filename}")
+def save_history_to_file():
+    """Save history to a uniquely named JSON file."""
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"{HISTORY_DIR}/analysis_{timestamp}.json"
+
+    with open(filename, "w") as f:
+        json.dump(st.session_state.history, f, indent=4)
+
+    st.success(f"History saved as {filename}")
+# Function to get all saved JSON files
+def get_history_files():
+    """Get all JSON files from the history folder."""
+    return sorted(
+        [f for f in os.listdir(HISTORY_DIR) if f.endswith(".json")],
+        reverse=True
+    )
+
+def load_history_from_file(filename):
+    """Load history from a selected JSON file and trigger analysis."""
+    filepath = os.path.join(HISTORY_DIR, filename)
+    try:
+        with open(filepath, "r") as f:
+            history_data = json.load(f)
+
+        # Set session state with loaded data
+        st.session_state.history = history_data
+
+        if history_data:
+            # Load the last saved analysis and trigger re-analysis
+            latest_analysis = history_data[-1]
+            st.session_state.dependencies = latest_analysis["dependencies"]
+            st.session_state.level_mapping = latest_analysis["level_mapping"]
+            st.session_state.dataset_features = latest_analysis["dataset_features"]
+            st.session_state.ai_dependencies = latest_analysis["ai_dependencies"]
+            st.session_state.expanded_features = set(latest_analysis["expanded_features"])
+            st.session_state.graph_ready = True  # Indicate the graph should update
+
+            st.success(f"History loaded and analysis triggered from {filename}")
+            st.rerun()  # Refresh Streamlit to reflect changes
+        else:
+            st.warning(f"File {filename} is empty.")
+
+    except FileNotFoundError:
+        st.warning(f"File not found: {filename}")
 
 # Initialize session state for history
 if "history" not in st.session_state:
@@ -22,48 +77,39 @@ if "history" not in st.session_state:
 
 # Function to save analysis state
 def save_history():
+    """Save the current analysis state in session history."""
     current_analysis = {
-        "dependencies": st.session_state.dependencies,
-        "level_mapping": st.session_state.level_mapping,
-        "dataset_features": st.session_state.dataset_features,
-        "ai_dependencies": st.session_state.ai_dependencies,
-        "expanded_features": list(st.session_state.expanded_features),
+        "dependencies": st.session_state.get("dependencies", {}),
+        "level_mapping": st.session_state.get("level_mapping", {}),
+        "dataset_features": st.session_state.get("dataset_features", []),
+        "ai_dependencies": st.session_state.get("ai_dependencies", {}),
+        "expanded_features": list(st.session_state.get("expanded_features", set())),
     }
     st.session_state.history.append(current_analysis)
     st.success("Analysis saved to history!")
 
-# Function to load a past analysis
-def load_history(index):
-    past_analysis = st.session_state.history[index]
-    st.session_state.dependencies = past_analysis["dependencies"]
-    st.session_state.level_mapping = past_analysis["level_mapping"]
-    st.session_state.dataset_features = past_analysis["dataset_features"]
-    st.session_state.ai_dependencies = past_analysis["ai_dependencies"]
-    st.session_state.expanded_features = set(past_analysis["expanded_features"])
-    st.session_state.graph_ready = True
-    st.success("History loaded successfully!")
-    st.rerun()
-
 # Function to export history as a JSON file
 def export_history():
+    """Allow users to download the saved history as a JSON file."""
     history_json = json.dumps(st.session_state.history, indent=4)
     st.download_button("Download History", data=history_json, file_name="analysis_history.json", mime="application/json")
-
 
 # Sidebar for history management
 with st.sidebar:
     st.header("📜 Analysis History")
-    if st.button("💾 Save Analysis"):
+
+    if st.button("💾 Save Analysis to File"):
         save_history()
-    
-    if st.session_state.history:
-        selected_index = st.selectbox("📂 Load Previous Analysis", range(len(st.session_state.history)))
-        if st.button("🔄 Load Selected History"):
-            load_history(selected_index)
-        export_history()
-        
+        save_history_to_file()
+
+    # Show available history files
+    history_files = get_history_files()
+    if history_files:
+        selected_file = st.selectbox("📂 Select a File to Load", history_files)
+        if st.button("📂 Load Selected File & Analyze"):
+            load_history_from_file(selected_file)
     else:
-        st.write("No history available.")
+        st.write("No saved history files found.")
  
     
 
