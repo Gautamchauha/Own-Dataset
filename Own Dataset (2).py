@@ -9,7 +9,6 @@ import os
 import numpy as np
 import random
 import json
-import os
 from datetime import datetime
 
 # Define history directory
