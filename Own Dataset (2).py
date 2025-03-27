@@ -344,6 +344,10 @@ def generate_expanded_dataset():
             df.to_csv(expanded_csv_path, index=False)
             st.download_button("Download CSV", data=open(expanded_csv_path, "rb"), file_name="expanded_dataset.csv")
             # Footer with Copyright Information
+
+
+# Call the function to generate the expanded dataset and allow downloading
+generate_expanded_dataset()
 st.markdown(
     """
     <hr style="border:1px solid gray;margin-top:20px;margin-bottom:10px;">
@@ -354,7 +358,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-# Call the function to generate the expanded dataset and allow downloading
-generate_expanded_dataset()
 
