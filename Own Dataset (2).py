@@ -8,7 +8,17 @@ import tempfile
 import os
 import numpy as np
 import random
-
+# Footer with Copyright Information
+st.markdown(
+    """
+    <hr style="border:1px solid gray;margin-top:20px;margin-bottom:10px;">
+    <div style="text-align:center;">
+        <p>© 2025 All rights reserved.</p>
+        <p>Developed by Himistu Lab.</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # ✅ Configure Gemini API
 from dotenv import load_dotenv
@@ -346,14 +356,4 @@ def generate_expanded_dataset():
 
 # Call the function to generate the expanded dataset and allow downloading
 generate_expanded_dataset()
-# Footer with Copyright Information
-st.markdown(
-    """
-    <hr style="border:1px solid gray;margin-top:20px;margin-bottom:10px;">
-    <div style="text-align:center;">
-        <p>© 2025 All rights reserved.</p>
-        <p>Developed by Himistu Lab.</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+
