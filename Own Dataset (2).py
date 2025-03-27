@@ -8,17 +8,7 @@ import tempfile
 import os
 import numpy as np
 import random
-# Footer with Copyright Information
-st.markdown(
-    """
-    <hr style="border:1px solid gray;margin-top:20px;margin-bottom:10px;">
-    <div style="text-align:center;">
-        <p>© 2025 All rights reserved.</p>
-        <p>Developed by Himistu Lab.</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+
 
 # ✅ Configure Gemini API
 from dotenv import load_dotenv
@@ -319,7 +309,17 @@ if selected_feature:
                 st.rerun()
     else:
         st.write("No AI-suggested dependencies available.")
-
+# Footer with Copyright Information
+st.markdown(
+    """
+    <hr style="border:1px solid gray;margin-top:20px;margin-bottom:10px;">
+    <div style="text-align:center;">
+        <p>© 2025 All rights reserved.</p>
+        <p>Developed by Himistu Lab.</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 def generate_expanded_dataset():
     # Get the current dataset and the expanded features
     df = st.session_state.df
